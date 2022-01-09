@@ -27,18 +27,23 @@ def compute_all_scores(words):
     df = pd.DataFrame(
         iterate(),
         columns=['solution', 'guess', 'score']
-    )
+    ).pivot(index='guess', columns='solution', values='score')
 
     return df
 
 
 class Wordle:
-    def __init__(self, wordlist, solution=None):
-        self.wordlist = list(wordlist)
-        self.scoredf = (
-            compute_all_scores(self.wordlist)
-            .pivot(index='guess', columns='solution', values='score')
-        )
+    def __init__(self, wordlist=None, scoredf=None, solution=None):
+        assert not (wordlist is None and scoredf is None)
+        if scoredf is not None:
+            assert scoredf.index.equals(scoredf.columns)
+            self.wordlist = list(scoredf.index)
+            self.scoredf = scoredf
+
+        else:
+            self.wordlist = list(wordlist)
+            self.scoredf = compute_all_scores(self.wordlist)
+
         self.reset(solution)
         return
 
@@ -49,8 +54,10 @@ class Wordle:
         self.solution_space = list(self.wordlist)
         return
 
-    def guess(self, word):
-        score = self.scoredf.loc[word, self.solution]
+    def guess(self, word, score=None):
+        if score is None:
+            score = self.scoredf.loc[word, self.solution]
+            
         mask = self.scoredf.loc[word, self.solution_space] == score
         self.solution_space = (
             self.scoredf
@@ -58,15 +65,26 @@ class Wordle:
             .index[mask]
             .to_list()
         )
-
+        
         return score, len(self.solution_space)
 
-    def suggest(self):
-        return (
-            self.scoredf[self.solution_space]
+    def suggest(self, solution_space=None):
+        if solution_space is None:
+            solution_space = self.solution_space
+
+        scores = (
+            self.scoredf[solution_space]
             .apply(lambda x: x.value_counts().mean(), axis=1)
-            .idxmin()
+            .rename('scores')
+            .to_frame()
         )
+        scores['in_solution_space'] = scores.index.isin(solution_space)
+        guess = scores.sort_values(
+            by=['scores', 'in_solution_space'],
+            ascending=[True, False]
+        ).index[0]
+
+        return guess
 
     def play(self):
         rounds = 0
