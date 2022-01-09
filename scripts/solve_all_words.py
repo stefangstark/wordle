@@ -1,6 +1,5 @@
 import sys
 
-from nltk.corpus.reader import wordlist
 import wordle
 from pathlib import Path
 from tqdm.auto import tqdm
@@ -19,7 +18,7 @@ def compute_all_second_suggestions(game, first_guess=None):
 
         for key, solution_space in items:
             yield key, game.suggest(solution_space)
-    
+
     if first_guess is None:
         first_guess = game.suggest(game.wordlist)
 
@@ -54,13 +53,15 @@ def load(kind, cachedir):
 
     except OSError:
         wordlist, scoredf, first_guess, second_guesses = cache(kind, cachedir)
-    
+
     game = Wordle(scoredf=scoredf)
     return game, first_guess, second_guesses
+
 
 def play(game, first_guess, second_guesses):
     rounds = 0
     guess = None
+    score = None
     while guess != game.solution:
         rounds = rounds + 1
         if rounds == 1:
