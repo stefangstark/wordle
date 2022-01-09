@@ -36,7 +36,8 @@ class Wordle:
     def __init__(self, wordlist=None, scoredf=None, solution=None):
         assert not (wordlist is None and scoredf is None)
         if scoredf is not None:
-            assert scoredf.index.equals(scoredf.columns)
+            assert scoredf.index.size == scoredf.columns.size
+
             self.wordlist = list(scoredf.index)
             self.scoredf = scoredf
 
@@ -66,11 +67,14 @@ class Wordle:
             .to_list()
         )
         
-        return score, len(self.solution_space)
+        return score
 
     def suggest(self, solution_space=None):
         if solution_space is None:
             solution_space = self.solution_space
+
+        if len(solution_space) == 1:
+            return solution_space[0]
 
         scores = (
             self.scoredf[solution_space]
@@ -85,11 +89,3 @@ class Wordle:
         ).index[0]
 
         return guess
-
-    def play(self):
-        rounds = 0
-        while len(self.solution_space) > 1:
-            rounds = rounds + 1
-            self.guess(self.suggest())
-
-        return rounds
