@@ -1,36 +1,11 @@
-from itertools import product
-import pandas as pd
 import random
+import pandas as pd
 import numpy as np
-
-
-def score_guess(solution, guess):
-    yellows = set(solution)
-
-    def iterate():
-        for lhs, rhs in zip(solution, guess):
-            if lhs == rhs:
-                yield 'g'
-            elif rhs in yellows:
-                yield 'y'
-            else:
-                yield 'r'
-
-    return ''.join(iterate())
-
-
-def compute_all_scores(words):
-    def iterate():
-        for solution, guess in product(words, words):
-            score = score_guess(solution, guess)
-            yield solution, guess, score
-
-    df = pd.DataFrame(
-        iterate(),
-        columns=['solution', 'guess', 'score']
-    ).pivot(index='guess', columns='solution', values='score')
-
-    return df
+from wordle.utils import compute_all_scores
+from tqdm.auto import tqdm
+from pathlib import Path
+import json
+from wordle.utils import load_words
 
 
 class Wordle:
@@ -96,3 +71,51 @@ class Wordle:
         ).index[0]
 
         return guess
+
+
+def compute_all_second_suggestions(game, first_guess=None):
+    def iterate(scores):
+        groupby = scores.groupby(scores)
+        items = tqdm(
+                groupby.groups.items(),
+                desc='Computing second guesses')
+
+        for key, solution_space in items:
+            yield key, game.suggest(solution_space)
+
+    if first_guess is None:
+        first_guess = game.suggest(game.wordlist)
+
+    scores = game.scoredf.loc[first_guess]
+
+    return dict(iterate(scores))
+
+
+def cache_state(kind, cachedir):
+    words = load_words(kind=kind)
+    scoredf = compute_all_scores(words)
+
+    game = Wordle(scoredf=scoredf)
+    first_guess = game.suggest()
+    second_guesses = compute_all_second_suggestions(game, first_guess)
+
+    cachedir.mkdir(exist_ok=True,)
+    Path(cachedir/'words.txt').write_text('\n'.join(words))
+    scoredf.to_csv(cachedir/'scoredf.csv', index_label='')
+    Path(cachedir/'first_guess.txt').write_text(first_guess)
+    json.dump(second_guesses, open(cachedir/'second_guesses.json', 'w'))
+
+    return scoredf, first_guess, second_guesses
+
+
+def load_state(kind, cachedir):
+    try:
+        scoredf = pd.read_csv(cachedir/'scoredf.csv', index_col=0)
+        first_guess = Path(cachedir/'first_guess.txt').read_text().strip()
+        second_guesses = json.load(open(cachedir/'second_guesses.json'))
+
+    except OSError:
+        scoredf, first_guess, second_guesses = cache_state(kind, cachedir)
+
+    game = Wordle(scoredf=scoredf)
+    return game, first_guess, second_guesses
