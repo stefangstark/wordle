@@ -99,7 +99,7 @@ def cache_state(kind, cachedir):
     first_guess = game.suggest()
     second_guesses = compute_all_second_suggestions(game, first_guess)
 
-    cachedir.mkdir(exist_ok=True,)
+    cachedir.mkdir(exist_ok=True, parents=True)
     Path(cachedir/'words.txt').write_text('\n'.join(words))
     scoredf.to_csv(cachedir/'scoredf.csv', index_label='')
     Path(cachedir/'first_guess.txt').write_text(first_guess)

@@ -86,4 +86,4 @@ if __name__ == '__main__':
         game.reset(word)
         nrounds[word] = play(game, first_guess, second_guesses)
 
-    json.dump(nrounds, cachedir/'nrounds.json')
+    json.dump(nrounds, open(cachedir/'nrounds.json', 'w'))
