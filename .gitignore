@@ -1,4 +1,7 @@
+data/
+
 # Custom
+.Ds_Store
 cache
 .vscode
 

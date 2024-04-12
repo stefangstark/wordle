@@ -1,0 +1,4 @@
+#! /bin/bash
+
+curl https://raw.githubusercontent.com/seanpatlan/wordle-words/main/valid-words.csv > data/valid.csv
+curl https://raw.githubusercontent.com/seanpatlan/wordle-words/main/word-bank.csv > data/bank.csv
